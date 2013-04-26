@@ -2,21 +2,35 @@ from inspect import getargspec, getcallargs
 from functools import wraps
 
 
-def arg_dict(f):
-    # the name of the "**" argument. Often "kwargs"
-    name_of_kwargs = getargspec(f).keywords
+class arg_dict(object):
+    def __init__(self, f):
+        self.wrappee = f
+        args, _, keywords, _ = getargspec(f)
+        if not 'arg_dict' in args:
+            raise Exception('this decorator requires that you accept '
+                '"arg_dict" as an argument to your function')
 
-    @wraps(f)
-    def wrappee(*args, **kwargs):
-        # getcallargs returns arguments as a dict
-        wrappee.arg_dict = getcallargs(f, *args, **kwargs)
+    def __call__(self, *args, **kwargs):
+        argnames, _, keywords, _ = getargspec(self.wrappee)
 
-        # unless we want **kwargs as a key in this dict...
-        kwargs_dict = wrappee.arg_dict.pop(name_of_kwargs, {})
-        wrappee.arg_dict.update(kwargs_dict)
+        args = list(args)
+        
+        try:
+            arg_dict = getcallargs(self.wrappee, *args, arg_dict={}, **kwargs)
+            print argnames, args
+            print self.wrappee.__name__
+        except TypeError: # function got multiple values for arg_dict
+            i = argnames.index('arg_dict')
+            args_with_dummy_argdict = args[:i] + [{}] + args[i:]
+            arg_dict = getcallargs(self.wrappee, *args_with_dummy_argdict, **kwargs)
 
-        # call the original function.
-        return f(*args, **kwargs)
+        # Check **kwargs' existence and add its contents to arg_dict
+        if keywords:
+            kwargs_dict = arg_dict.pop(keywords)
+            arg_dict.update(kwargs_dict)
 
-    return wrappee
+        arg_dict.pop('arg_dict')
+
+        # call original function
+        return self.wrappee(arg_dict=arg_dict, **arg_dict)
 
