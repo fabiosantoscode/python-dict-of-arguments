@@ -2,33 +2,30 @@ from inspect import getargspec, getcallargs
 from functools import wraps
 
 
-class arg_dict(object):
-    def __init__(self, f):
-        self.wrappee = f
-        args, _, keywords, _ = getargspec(f)
-        if not 'arg_dict' in args:
-            raise Exception('this decorator requires that you accept '
-                '"arg_dict" as an argument to your function')
-
-    def __call__(self, *args, **kwargs):
-        argnames, _, keywords, _ = getargspec(self.wrappee)
-
+def arg_dict(func):
+    argnames, _, keywords_arg, _ = getargspec(func)
+    if not 'arg_dict' in argnames:
+        raise Exception('this decorator requires that you accept ' +
+            '"arg_dict" as a positional argument to your function')
+    
+    @wraps(func)
+    def wrapper(*args, **kwargs):
         args = list(args)
-        
         try:
-            arg_dict = getcallargs(self.wrappee, *args, arg_dict={}, **kwargs)
+            callargs = getcallargs(func, *args, arg_dict={}, **kwargs)
         except TypeError: # function got multiple values for arg_dict
             i = argnames.index('arg_dict')
-            args_with_dummy_argdict = args[:i] + [{}] + args[i:]
-            arg_dict = getcallargs(self.wrappee, *args_with_dummy_argdict, **kwargs)
+            before, after = args[:i], args[i:]
+            args_with_dummy = before + ['arg-dict-here'] + after
+            callargs = getcallargs(func, *args_with_dummy, **kwargs)
 
         # Check **kwargs' existence and add its contents to arg_dict
-        if keywords:
-            kwargs_dict = arg_dict.pop(keywords)
-            arg_dict.update(kwargs_dict)
+        if keywords_arg:
+            kwargs_dict = callargs.pop(keywords_arg)
+            callargs.update(kwargs_dict)
 
-        arg_dict.pop('arg_dict')
+        callargs.pop('arg_dict')
 
         # call original function
-        return self.wrappee(arg_dict=arg_dict, **arg_dict)
-
+        return func(arg_dict=callargs, **callargs)
+    return wrapper
