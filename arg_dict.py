@@ -17,8 +17,6 @@ class arg_dict(object):
         
         try:
             arg_dict = getcallargs(self.wrappee, *args, arg_dict={}, **kwargs)
-            print argnames, args
-            print self.wrappee.__name__
         except TypeError: # function got multiple values for arg_dict
             i = argnames.index('arg_dict')
             args_with_dummy_argdict = args[:i] + [{}] + args[i:]

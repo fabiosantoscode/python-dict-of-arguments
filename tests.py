@@ -41,6 +41,17 @@ class TestArgDictDecorator(TestCase):
         second = simultaneous('second')
         self.assertEqual(next(first), 'first')
         self.assertEqual(next(second), 'second')
+
+    def test_recursive(self):
+        @arg_dict
+        def recursive(arg_dict, a_list):
+            if len(arg_dict['a_list']):
+                return (arg_dict['a_list'].pop(0) +
+                    recursive(arg_dict['a_list']))
+            else:
+                return ''
+
+        self.assertEqual(recursive(['1', '2', '3']), '123')
     
     def test_kwargs(self):
         @arg_dict
