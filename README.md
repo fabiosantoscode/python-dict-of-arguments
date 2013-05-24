@@ -10,12 +10,10 @@ Decorate your function and add an `arg_dict` argument to it. Then you can access
 
 
         from arg_dict import arg_dict
-        
+
         @arg_dict
-        def foo(bar, baz=3, arg_dict):
+        def foo(arg_dict, bar, baz=3):
             arg_dict['bar'] += 1
             arg_dict.update({'qux': 10})
             return arg_dict
-
-
 
